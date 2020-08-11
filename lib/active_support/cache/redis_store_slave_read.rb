@@ -11,11 +11,12 @@ module ActiveSupport
         init_pool(@pool_options)
       end
 
-      def write(name, value, options = nil)
-        options = merged_options(options)
+      def write(name, value, _options = nil)
+        options = @options.merge(merged_options(_options))
+
         instrument(:write, name, options) do |_payload|
           entry = options[:raw].present? ? value : Entry.new(value, options)
-          write_entry(normalize_key(name, options), entry, options)
+          write_entry(normalize_key(name, options), value, options)
         end
       end
 
@@ -24,7 +25,8 @@ module ActiveSupport
       # Example:
       #   cache.del_matched "rab*"
       def delete_matched(matcher, options = nil)
-        options = merged_options(options)
+        options = @options.merge(merged_options(_options))
+
         instrument(:delete_matched, matcher.inspect) do
           matcher = key_matcher(matcher, options)
           begin
@@ -140,18 +142,21 @@ module ActiveSupport
         end
       end
 
-      def write_entry(key, entry, options)
+      def write_entry(key, entry, _options)
+        options = @options.merge(merged_options(_options))
+
         method = options && options[:unless_exist] ? :setnx : :set
         @pool.with { |s| s.send(method, key, entry, options) }
       rescue Errno::ECONNREFUSED
         false
       end
 
-      def read_entry(key, options)
+      def read_entry(key, _options)
+        options = @options.merge(merged_options(_options))
+
         entry = @pool.with { |s| s.get(key, options) }
-        if entry
-          entry.is_a?(ActiveSupport::Cache::Entry) ? entry : ActiveSupport::Cache::Entry.new(entry)
-        end
+
+        return entry if entry
       rescue Errno::ECONNREFUSED
         nil
       end
