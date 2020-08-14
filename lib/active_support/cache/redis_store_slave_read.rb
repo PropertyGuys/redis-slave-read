@@ -46,7 +46,7 @@ module ActiveSupport
       def read_multi(*names)
         values = @pool.with { |s| s.mget(*names) }
 
-        values.map! { |v| v.is_a?(ActiveSupport::Cache::Entry) ? v.value : v }
+        values.map! { |v| v.is_a?(ActiveSupport::Cache::Entry) ? v : ActiveSupport::Cache::Entry.new(v) }
 
         # Remove the options hash before mapping keys to values
         names.extract_options!
@@ -158,7 +158,9 @@ module ActiveSupport
 
         entry = @pool.with { |s| s.get(key, options) }
 
-        entry = entry.value if entry && entry.is_a?(ActiveSupport::Cache::Entry)
+        if entry
+          entry = entry.is_a?(ActiveSupport::Cache::Entry) ? entry : ActiveSupport::Cache::Entry.new(entry)
+        end
 
         return entry if entry
       rescue Errno::ECONNREFUSED
