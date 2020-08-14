@@ -46,7 +46,7 @@ module ActiveSupport
       def read_multi(*names)
         values = @pool.with { |s| s.mget(*names) }
 
-        values.map! { |v| v.is_a?(ActiveSupport::Cache::Entry) ? v : ActiveSupport::Cache::Entry.new(v) }
+        values.map! { |v| v.is_a?(ActiveSupport::Cache::Entry) ? v.value : v }
 
         # Remove the options hash before mapping keys to values
         names.extract_options!
