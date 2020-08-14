@@ -147,6 +147,8 @@ module ActiveSupport
       def write_entry(key, entry, _options)
         options = @options.merge(merged_options(_options))
 
+        options.delete(:key)
+
         method = options && options[:unless_exist] ? :setnx : :set
         @pool.with { |s| s.send(method, key, entry, options) }
       rescue Errno::ECONNREFUSED
